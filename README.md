@@ -36,3 +36,13 @@ Run `psql -d jobs -f delay.sql` and then run `psql -d jobs -f next.sql` on a sep
 Run `python consumer.py` to run 4 consumers on separate threads that fetch and complete jobs using the same next query as above. The consumers should not get any duplicate jobs (total consumed jobs = size of test data).
 
 If an artificial delay of 1 second was introduced for every 100th job, and 10 consumers were run concurrently, it would take at least 10 seconds to consume the entire queue since each query is executed sequentially.
+
+### 3-skip-locked
+
+Run `psql -d jobs -f next.sql` to fetch and complete one job.
+
+Run `psql -d jobs -f delay.sql` and then run `psql -d jobs -f next.sql` on a separate tab. The two queries should return different `chunk_idx`s. Note that the next query without delay does not wait for the delayed query transaction to commit because `SELECT... FOR UPDATE SKIP LOCK` ignores locked rows.
+
+Run `python consumer.py` to run 4 consumers on separate threads that fetch and complete jobs using the same next query as above. The consumers should not get any duplicate jobs (total consumed jobs = size of test data).
+
+If an artificial delay of 1 second was introduced for every 100th job, and 10 consumers were run concurrently, it would take at least 1 seconds but (generally) less than 10 seconds because queries can run independent of each other.
