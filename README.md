@@ -21,7 +21,7 @@ All test cases are using a 1000 row test data set.
 
 Run `psql -d jobs -f next.sql` to fetch and complete one job.
 
-Run `psql -d jobs -f delay.sql` and then run `psql -d jobs -f next.sql` on a separate tab. Both queries should return the same `chunk_idx` because the select sub-query does not lock the row.
+Run `psql -d jobs -f delay.sql` and then run `psql -d jobs -f next.sql` on a separate tab. Both queries should return the same `chunk_idx` because the `SELECT` sub-query does not lock for update. Note that the next query without delay waits for the delayed query transaction to commit because both queries are trying to update the same target row. If the sub-query condition was changed so it returns a different row, the next query will not wait for the other transaction to complete.
 
 Run `python consumer.py` to run 2 consumers on separate threads that fetch and complete jobs using the same next query as above. Both consumers should get a large number or duplicate jobs (total consumed jobs != size of test data).
 
@@ -46,3 +46,9 @@ Run `psql -d jobs -f delay.sql` and then run `psql -d jobs -f next.sql` on a sep
 Run `python consumer.py` to run 10 consumers on separate threads that fetch and complete jobs using the same next query as above. The consumers should not get any duplicate jobs (total consumed jobs = size of test data).
 
 If an artificial delay of 1 second was introduced for every 100th job, and 10 consumers were run concurrently, it would take at least 1 seconds but (generally) less than 10 seconds because queries can run independent of each other.
+
+## References
+
+- [https://news.ycombinator.com/item?id=14676859](https://news.ycombinator.com/item?id=14676859)
+- [https://www.postgresql.org/docs/current/transaction-iso.html](https://www.postgresql.org/docs/current/transaction-iso.html)
+- [https://blog.2ndquadrant.com/what-is-select-skip-locked-for-in-postgresql-9-5/](https://blog.2ndquadrant.com/what-is-select-skip-locked-for-in-postgresql-9-5/)
