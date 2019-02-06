@@ -26,3 +26,13 @@ Run `psql -d jobs -f delay.sql` and then run `psql -d jobs -f next.sql` on a sep
 Run `python consumer.py` to run 2 consumers on separate threads that fetch and complete jobs using the same next query as above. Both consumers should get a large number or duplicate jobs (total consumed jobs != size of test data).
 
 The limitation of this approach is concurrency.
+
+### 2-for-update
+
+Run `psql -d jobs -f next.sql` to fetch and complete one job.
+
+Run `psql -d jobs -f delay.sql` and then run `psql -d jobs -f next.sql` on a separate tab. The two queries should return different `chunk_idx`s because `SELECT... FOR UPDATE` locks the row. Note that the next query without delay waits for the delayed query transaction to commit.
+
+Run `python consumer.py` to run 4 consumers on separate threads that fetch and complete jobs using the same next query as above. The consumers should not get any duplicate jobs (total consumed jobs = size of test data).
+
+If an artificial delay of 1 second was introduced for every 100th job, and 10 consumers were run concurrently, it would take at least 10 seconds to consume the entire queue since each query is executed sequentially.
